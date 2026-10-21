@@ -1,0 +1,36 @@
+---
+- hosts: lxc
+  tasks:
+    - name: Update all packages to their latest version
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+    - name: Remove dependencies that are no longer required
+      ansible.builtin.apt:
+        autoremove: true
+- hosts: RHEL
+  serial: 1
+  gather_facts: true
+  tasks:
+    - name: check the client uptime
+      shell: uptime
+
+    - name: Update packages
+      ansible.builtin.dnf:
+        name: '*'
+        state: latest
+      become: true
+    - name: Autoremove unneeded packages installed as dependencies
+      dnf:
+        autoremove: true
+    - name: "Check if reboot required"
+      shell: KERNEL_NEW=$(rpm -q --last kernel |head -1 | awk '{print $1}'|sed 's/kernel-//'); KERNEL_NOW=$(uname -r); if [[ $KERNEL_NEW != $KERNEL_NOW ]]; then echo "reboot needed"; else echo "reboot not needed"; fi
+      ignore_errors: true
+      register: reboot_status
+    - name: "This play is to restart the system using above status check"
+      command: shutdown -r +1 "Rebooting System After Patching"
+      async: 0
+      poll: 0
+      when: reboot_status.stdout == "reboot needed"
+      register: reboot_started
+      ignore_errors: true

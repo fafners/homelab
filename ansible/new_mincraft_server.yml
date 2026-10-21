@@ -1,0 +1,115 @@
+---
+- name: Check for and install latest Fabric server build
+  hosts: minecraft
+  become: true
+  vars:
+    mc_user: minecraft
+    mc_dir: /home/minecraft/new
+    mc_java_args: "-Xmx6G"
+    service_name: minecraft
+    # Pin these if you don't want to auto-follow the latest Minecraft version,
+    # e.g. mc_game_version: "1.21.1". Leave empty to always track the latest stable game release.
+    mc_game_version: ""
+
+  tasks:
+    - name: Get latest stable game version
+      ansible.builtin.uri:
+        url: https://meta.fabricmc.net/v2/versions/game
+        return_content: true
+      register: game_versions
+      when: mc_game_version == ""
+
+    - name: Set game version fact (latest stable)
+      ansible.builtin.set_fact:
+        resolved_game_version: "{{ (game_versions.json | selectattr('stable') | list | first).version }}"
+      when: mc_game_version == ""
+
+    - name: Set game version fact (pinned)
+      ansible.builtin.set_fact:
+        resolved_game_version: "{{ mc_game_version }}"
+      when: mc_game_version != ""
+
+    - name: Get latest stable loader version
+      ansible.builtin.uri:
+        url: https://meta.fabricmc.net/v2/versions/loader
+        return_content: true
+      register: loader_versions
+
+    - name: Set loader version fact
+      ansible.builtin.set_fact:
+        resolved_loader_version: "{{ (loader_versions.json | selectattr('stable') | list | first).version }}"
+
+    - name: Get latest stable installer version
+      ansible.builtin.uri:
+        url: https://meta.fabricmc.net/v2/versions/installer
+        return_content: true
+      register: installer_versions
+
+    - name: Set installer version fact
+      ansible.builtin.set_fact:
+        resolved_installer_version: "{{ (installer_versions.json | selectattr('stable') | list | first).version }}"
+
+    - name: Build target jar filename
+      ansible.builtin.set_fact:
+        new_jar_name: "fabric-server-mc.{{ resolved_game_version }}-loader.{{ resolved_loader_version }}-launcher.{{ resolved_installer_version }}.jar"
+
+    - name: Report resolved versions
+      ansible.builtin.debug:
+        msg: "Latest Fabric build resolved to: {{ new_jar_name }}"
+
+    - name: Check if this build is already present
+      ansible.builtin.stat:
+        path: "{{ mc_dir }}/{{ new_jar_name }}"
+      register: existing_jar
+
+    - name: Find currently installed jar(s)
+      ansible.builtin.find:
+        paths: "{{ mc_dir }}"
+        patterns: "fabric-server-mc.*-launcher.*.jar"
+      register: old_jars
+      when: not existing_jar.stat.exists
+
+    - name: Stop Minecraft service before updating
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        state: stopped
+      when: not existing_jar.stat.exists
+
+    - name: Download new Fabric server jar
+      ansible.builtin.get_url:
+        url: "https://meta.fabricmc.net/v2/versions/loader/{{ resolved_game_version }}/{{ resolved_loader_version }}/{{ resolved_installer_version }}/server/jar"
+        dest: "{{ mc_dir }}/{{ new_jar_name }}"
+        owner: "{{ mc_user }}"
+        group: "{{ mc_user }}"
+        mode: "0644"
+      when: not existing_jar.stat.exists
+
+    - name: Archive previous jar(s) instead of deleting
+      ansible.builtin.command: mv {{ item.path }} {{ item.path }}.bak
+      loop: "{{ old_jars.files | default([]) }}"
+      when: not existing_jar.stat.exists and old_jars.matched | default(0) > 0
+      changed_when: true
+
+    - name: Update systemd ExecStart to point at the new jar
+      ansible.builtin.lineinfile:
+        path: "/etc/systemd/system/{{ service_name }}.service"
+        regexp: '^ExecStart=.*-jar\s+\S+\s+nogui\s*$'
+        line: "ExecStart=/usr/bin/screen -DmS {{ service_name }} /usr/bin/java {{ mc_java_args }} -jar {{ new_jar_name }} nogui"
+      register: unit_updated
+      when: not existing_jar.stat.exists
+
+    - name: Reload systemd after unit change
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: unit_updated.changed | default(false)
+
+    - name: Start Minecraft service
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        state: started
+      when: not existing_jar.stat.exists
+
+    - name: No update needed
+      ansible.builtin.debug:
+        msg: "Already running the latest build ({{ new_jar_name }}) - nothing to do."
+      when: existing_jar.stat.exists

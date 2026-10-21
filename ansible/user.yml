@@ -1,0 +1,14 @@
+- hosts: minecraft
+  tasks:
+    - name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
+      ansible.builtin.user:
+        name: "{{ item }}"
+        comment: John Doe
+        group: staff
+        create_home: true
+      loop:
+        - nisse
+        - kalle
+        - bill
+        - bull  
+

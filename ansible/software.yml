@@ -1,0 +1,21 @@
+---
+- hosts: gmk
+  tasks:
+          - name: Add a list of software ...
+            dnf:
+                    name: "{{ packages }}"
+                    state: present
+            vars:
+                    packages:
+                            - tmux
+            tags:
+              - install
+          - name: Add a list of software ...
+            yum:
+                    name: "{{ packages }}"
+                    state: absent
+            vars:
+                    packages:
+                            - tmux
+            tags:
+              - remove

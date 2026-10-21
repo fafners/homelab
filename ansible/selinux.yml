@@ -1,0 +1,7 @@
+---
+- hosts: RHEL
+  tasks:
+    - name: Enable SELinux
+      ansible.posix.selinux:
+        policy: targeted
+        state: enforcing

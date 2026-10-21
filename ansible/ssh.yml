@@ -1,0 +1,10 @@
+---
+- hosts: lxc
+  tasks:
+
+   - name: Set authorized key taken from file
+     authorized_key:
+       user: bjorn
+       state: present
+       key: "{{ lookup('file', '/Users/bjorn/.ssh/id_ed25519.pub') }}"
+

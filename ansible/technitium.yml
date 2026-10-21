@@ -1,0 +1,6 @@
+---
+- hosts: ns
+  tasks:
+    - name: Start a container
+      shell: 
+        "curl -sSL https://download.technitium.com/dns/install.sh | sudo bash"

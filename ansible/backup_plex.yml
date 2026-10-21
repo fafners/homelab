@@ -1,0 +1,14 @@
+---
+- hosts: gmk
+  tasks:
+    - name: Stop plexmediaserver if running
+      ansible.builtin.systemd_service:
+       name: plexmediaserver
+       state: stopped
+    - name: make a plex dump
+      shell: 
+        "tar cvzf /app1/plex.tar.gz /var/lib/plexmediaserver"
+    - name: Start plexmediaserver if stopped
+      ansible.builtin.systemd_service:
+       name: plexmediaserver
+       state: started

@@ -1,0 +1,8 @@
+---
+- hosts: RHEL
+  tasks: 
+    - name: Uppdatera podman containers
+      ansible.builtin.shell: /usr/bin/podman auto-update 
+    - name: Prune everything
+      containers.podman.podman_prune:
+        system: true

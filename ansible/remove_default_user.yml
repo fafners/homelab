@@ -1,0 +1,10 @@
+- hosts: all
+  tasks:
+  - name: ansible remove user guru
+    user:
+      name: "{{ item }}"
+      state: absent
+      remove: true
+    loop:
+      - guru
+      - ubuntu

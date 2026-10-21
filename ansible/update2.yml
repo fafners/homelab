@@ -1,0 +1,65 @@
+---
+#- name: Update SUSE hosts
+#  hosts: suse
+#  become: true
+#  tasks:
+#    - name: Upgrade all packages
+#      community.general.zypper:
+#        name: "*"
+#        state: latest
+#        update_cache: true
+
+- name: Update LXC containers (apt)
+  hosts: lxc
+  become: true
+  tasks:
+    - name: Update all packages
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: true
+
+    - name: Remove unused dependencies
+      ansible.builtin.apt:
+        autoremove: true
+        purge: true
+
+- name: Update VMs (dnf)
+  hosts: vm
+  become: true
+  tasks:
+    - name: Update all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+
+    - name: Remove unneeded dependencies
+      ansible.builtin.dnf:
+        autoremove: true
+
+- name: Update KVM host (dnf) and reboot if needed
+  hosts: kvm_host
+  become: true
+  tasks:
+    - name: Update all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+
+    - name: Remove unneeded dependencies
+      ansible.builtin.dnf:
+        autoremove: true
+
+    - name: Check if reboot is required
+      ansible.builtin.command: needs-restarting -r
+      register: reboot_status
+      failed_when: false
+      changed_when: false
+
+    - name: Reboot if kernel or core libs were updated
+      ansible.builtin.reboot:
+        msg: "Rebooting KVM host after updates"
+        reboot_timeout: 300
+      when: reboot_status.rc == 1

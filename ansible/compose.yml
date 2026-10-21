@@ -1,0 +1,19 @@
+---
+- name: Run Docker compose
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - debug: msg="Container - {{ inventory_hostname }}"
+    - docker_compose:
+        project_src: "/tank/config"
+        state: absent
+        remove_images: all
+      tags:
+        - stop
+
+    - docker_compose:
+        project_src: "/tank/config"
+        state: present
+      tags:
+        - start

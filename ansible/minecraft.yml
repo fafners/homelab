@@ -1,0 +1,71 @@
+---
+- name: Set up Fabric Minecraft server autostart (in screen)
+  hosts: minecraft
+  become: true
+  vars:
+    mc_user: minecraft
+    mc_dir: /home/minecraft/new
+    mc_jar: fabric-server-mc.26.2-loader.0.19.3-launcher.1.1.1.jar
+    mc_java_args: "-Xmx6G"
+    screen_session: minecraft
+
+  tasks:
+    - name: Install screen
+      ansible.builtin.apt:
+        name: screen
+        state: present
+        update_cache: true
+
+    - name: Confirm fabric jar exists
+      ansible.builtin.stat:
+        path: "{{ mc_dir }}/{{ mc_jar }}"
+      register: jar_stat
+
+    - name: Fail if jar not found
+      ansible.builtin.fail:
+        msg: "{{ mc_jar }} not found in {{ mc_dir }} - check the mc_jar variable"
+      when: not jar_stat.stat.exists
+
+    - name: Ensure eula.txt accepts the EULA
+      ansible.builtin.copy:
+        dest: "{{ mc_dir }}/eula.txt"
+        content: "eula=true\n"
+        owner: "{{ mc_user }}"
+        group: "{{ mc_user }}"
+        force: false   # don't overwrite if it already exists
+
+    - name: Deploy systemd service for Minecraft (screen-wrapped)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/minecraft.service
+        content: |
+          [Unit]
+          Description=Fabric Minecraft Server (in screen)
+          After=network.target
+
+          [Service]
+          Type=forking
+          User={{ mc_user }}
+          Group={{ mc_user }}
+          WorkingDirectory={{ mc_dir }}
+          ExecStart=/usr/bin/screen -DmS {{ screen_session }} /usr/bin/java {{ mc_java_args }} -jar {{ mc_jar }} nogui
+          ExecStop=/usr/bin/screen -S {{ screen_session }} -X stuff "stop\n"
+          Restart=on-failure
+          RestartSec=10
+          TimeoutStopSec=60
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Enable and start Minecraft service
+      ansible.builtin.systemd:
+        name: minecraft
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

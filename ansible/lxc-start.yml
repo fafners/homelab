@@ -1,0 +1,6 @@
+---
+- hosts: mothership
+  tasks:
+    - name: Start a container
+      ansible.builtin.shell: 
+        "sudo lxc-stop -n debbie && sudo lxc-start -n debbie"

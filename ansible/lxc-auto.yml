@@ -1,0 +1,8 @@
+---
+- hosts: grundbult
+  tasks:
+    - name: replace line
+      lineinfile:
+        path: /tank/host/mail2/config
+        regexp: '^lxc.start.auto'
+        line: 'lxc.start.auto = 1'

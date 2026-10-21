@@ -1,0 +1,15 @@
+- hosts: all
+  tasks:
+  - name: ansible remove user guru
+    user:
+      name: "{{ item }}"
+      state: absent
+      remove: true
+    loop:
+      - guru
+      - ubuntu
+  - name: Revoke the previous sudo grants given to the user
+    community.general.sudoers:
+      name: ubuntu
+      state: absent
+

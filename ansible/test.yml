@@ -1,0 +1,10 @@
+---
+- name: Update RHEL servers
+  hosts: RHEL
+  become: true
+  gather_facts: no
+  tasks:
+    - name: Create a directory (GOOD WAY using a module)
+      file:
+        path: /tmp/sokube
+        state: directory

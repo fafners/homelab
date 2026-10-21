@@ -1,0 +1,12 @@
+
+[suse]
+[lxc]
+gmk ansible_host=192.168.150.250 
+debbie    ansible_host=192.168.150.2
+minecraft  ansible_host=192.168.150.41
+ns       ansible_host=192.168.150.4 
+
+[vm]
+labbe ansible_host=192.168.150.6 
+[kvm_host]
+mothership ansible_host=192.168.150.100 

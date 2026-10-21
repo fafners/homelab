@@ -1,0 +1,11 @@
+---
+- name: Update Ubuntu servers
+  hosts: server
+  become: true
+  tasks:
+       - name: Update packages
+         ansible-builtin.service:
+           name: "fstrim.timer"
+           state: "started"
+          enabled: true
+          become: true

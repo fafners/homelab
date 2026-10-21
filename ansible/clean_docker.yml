@@ -1,0 +1,11 @@
+---
+- hosts: gmk
+  tasks: 
+    - name: Prune everything
+      docker_prune:
+        containers: no
+        images: yes
+        networks: yes
+        volumes: yes
+        builder_cache: yes
+

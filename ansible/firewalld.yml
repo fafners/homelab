@@ -1,0 +1,13 @@
+---
+- name: Install a firewalld port opening
+  hosts: gmk  # Refer to the group in the inventory file
+  become: yes        # Run with sudo privileges
+  tasks:
+    - name: permanently enable https service, also enable it immediately if possible
+      ansible.posix.firewalld:
+        port: 53443/tcp
+        state: disabled
+        permanent: true
+        immediate: true
+        offline: true
+

@@ -1,0 +1,41 @@
+---
+- name: Mount NFS and update fstab on RHEL
+  hosts: gmk
+  become: true  # Kör som root
+  tasks:
+
+    - name: Installera nfs-utils (om det inte redan är installerat)
+      apt:
+        name: nfs-common
+        state: present
+
+    - name: Skapa mount-point 1
+      file:
+        path: /app1
+        state: directory
+        mode: '0755'
+    - name: Skapa mount-point 2
+      file:
+        path: /mnt/Download
+        state: directory
+        mode: '0755'
+
+
+    - name: Lägg till NFS-montering i /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "192.168.150.80:/volume1/Download  /mnt/Download    nfs     rw,bg,hard,tcp,nconnect=8,nfsvers=4,timeo=600,actimeo=0 0 0 \n192.168.150.80:/volume1/app_store1  /app1    nfs     rw,bg,hard,tcp,nconnect=8,nfsvers=4,timeo=600,actimeo=0 0 0"
+        state: present
+        backup: true  # Skapar en säkerhetskopia av fstab
+
+    - name: Montera NFS-filsystemet
+      command: mount -a
+      register: mount_output
+      changed_when: "'mounted' in mount_output.stdout"
+
+    - name: Kontrollera om mount är lyckad
+      command: "df -hT | grep /app1"
+      register: df_output
+      changed_when: false
+      failed_when: df_output != 0
+

@@ -1,0 +1,14 @@
+---
+- name: Install a list of packages on RHEL
+  hosts: RHEL  # Refer to the group in the inventory file
+  become: yes        # Run with sudo privileges
+  tasks:
+    - name: Install required packages
+      yum:
+        name:
+          - tmux
+          - zsh
+          - bind-utils
+          # Add your desired package names here
+        state: present
+

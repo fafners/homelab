@@ -1,0 +1,32 @@
+---
+- name: Distribute SSH keys for user guru
+  hosts: servers
+  remote_user: guru
+  become: yes
+  become_user: root
+  vars:
+    ssh_keys:
+      - "{{ lookup('file', '/home/fafner/.ssh/id_rsa.pub') }}"
+  tasks:
+    - name: Ensure sudo privileges for guru
+      lineinfile:
+        dest: "/etc/sudoers"
+        line: "guru ALL=(ALL) NOPASSWD: ALL"
+        validate: "/usr/sbin/visudo -cf %s"
+        state: present
+      become: yes
+      become_user: root
+    - name: Ensure .ssh directory exists for guru
+      file:
+        path: "/home/guru/.ssh"
+        state: directory
+        mode: '0700'
+        owner: guru
+        group: guru
+    - name: Add SSH keys for guru
+      authorized_key:
+        user: guru
+        state: present
+        key: "{{ item }}"
+      with_items: "{{ ssh_keys }}"
+

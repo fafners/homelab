@@ -1,0 +1,9 @@
+---
+- hosts: mothership
+  tasks:
+  - name: Configure crypto policies
+    include_role:
+     name: rhel-system-roles.crypto_policies
+    vars:
+     - crypto_policies_policy: FUTURE 
+     - crypto_policies_reboot_ok: true

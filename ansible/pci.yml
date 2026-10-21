@@ -1,0 +1,10 @@
+---
+- hosts: mail
+  tasks:
+          - name: Add a list of software ...
+            apt:
+                    name: "{{ packages }}"
+                    state: present
+            vars:
+                    packages:
+                            - pciutils
